@@ -1,6 +1,6 @@
 const req = require('express/lib/request');
 const res = require('express/lib/response');
-const { Thought, User } = require('../models');
+const { Thought, User, Reaction } = require('../models');
 
 module.exports = {
   // Get all users
@@ -12,16 +12,26 @@ module.exports = {
   // Get a single User by its Id
   getSingleUser(req, res) {
     User.findOne({ _id: req.params.userId })
+      .populate([
+        { path: 'thoughts', select: "-__v"},
+        { path: 'friends', select: "-__v"},
+
+      ])
       .select('-__v')
       .then((user) =>
         !user
           ? res.status(404).json({ message: 'No user with that ID' })
           : res.json({
-            user,
-            email: await email(req.params.userId)
+            user
           })
       )
       .catch((err) => res.status(500).json(err));
+  },
+  // create a new user
+  createUser(req, res) {
+    User.create(req.body)
+    .then((users) => res.json(users))
+    .catch((err) => res.status(400).json(err));
   },
   // update a user by their id
   updateUser(req, res) {
@@ -54,15 +64,31 @@ module.exports = {
   addFriend(req, res) {
     User.findOneAndUpdate(
       { _id: req.params.userId },
-      { $addToSet: { friends: req.body } },
+      { $addToSet: { friends: req.params.userId } },
       { runValidators: true, new: true }
     )
-      .then((user) =>
-        !user
-          ? res.status(404).json({ message: 'No user with this id!' })
-          : res.json(user)
+      .then((user) => {
+        if(!user) {
+        return res.status(404).json({ message: 'No user with this id!' })
+        }
+       res.json(user)
+      })
+      //add userId to friendId's friend List
+      User.findOneAndUpdate(
+        {_id: req.params.friendId},
+        {$addToSet: {friends: req.params.userId}},
+        { runValidators: true, new: true }
       )
-      .catch((err) => res.status(500).json(err));
+      .then((userData) => {
+        if(userData) {
+        return res.json(userData).json({ message: 'No user with this friendId!' })
+        }
+        
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(500).json(err);
+      });;
   },
 
   // remove a friend from the user

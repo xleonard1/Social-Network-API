@@ -1,5 +1,5 @@
 const { Schema, model } = require('mongoose');
-const assignmentSchema = require('./Assignment');
+const reactionSchema = require('./Reaction');
 
 // Schema to create Student model
 const thoughtSchema = new Schema(
@@ -11,8 +11,7 @@ const thoughtSchema = new Schema(
     },
     createdAt: {
       type: Date,
-      default: () => new Date(+new Date() + 84 * 24 * 60 * 60 * 1000),
-      get: (date) => timeSince(date)
+      default: Date.now()
     },
     username: {
       type: String,
@@ -24,10 +23,11 @@ const thoughtSchema = new Schema(
     toJSON: {
       getters: true,
     },
+    id: false
   }
 );
 
-userSchema.virtual('reactionCount').get(function() {
+thoughtSchema.virtual('reactionCount').get(function() {
   return this.reactions.length
 })
 
